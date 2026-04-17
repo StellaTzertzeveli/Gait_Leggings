@@ -1,4 +1,5 @@
 import matplotlib
+import time
 matplotlib.use("TkAgg")
 import asyncio, struct, collections, threading
 import matplotlib.pyplot as plt
@@ -13,7 +14,7 @@ MAX_POINTS  = WINDOW_S * 100
 
 DEVICES = {
     "L": {
-        "name":      "NanoBLE DEMO L",
+        "name":      "NanoBLE L1",
         "color":     "#185FA5",
         "times":     collections.deque(maxlen=MAX_POINTS),
         "values":    collections.deque(maxlen=MAX_POINTS),
@@ -21,7 +22,7 @@ DEVICES = {
         "connected": threading.Event(),
     },
     "R": {
-        "name":      "NanoBLE DEMO R",
+        "name":      "NanoBLE L3",
         "color":     "#993C1D",
         "times":     collections.deque(maxlen=MAX_POINTS),
         "values":    collections.deque(maxlen=MAX_POINTS),
@@ -36,14 +37,12 @@ def make_handler(dev):
     def handle(sender, data: bytearray):
         if paused.is_set():
             return
-        timestamp_ms = struct.unpack_from("<I", data, 0)[0]
-        if dev["t0"] is None:
-            dev["t0"] = timestamp_ms
+        now = time.time()  # laptop wall clock — same for both devices
         for i in range(8):
             offset = 4 + i * 3
             raw    = struct.unpack_from("<H", data, offset)[0]
             ohms   = raw / 100.0
-            t_sec  = (timestamp_ms - dev["t0"]) / 1000.0 + i * 0.01
+            t_sec = (now - t_start) + i * 0.01
             dev["times"].append(t_sec)
             dev["values"].append(ohms)
     return handle
@@ -68,6 +67,7 @@ async def ble_main():
 
 threading.Thread(target=lambda: asyncio.run(ble_main()), daemon=True).start()
 
+t_start = time.time()
 fig = plt.figure(figsize=(13, 5))
 fig.patch.set_facecolor("#fafafa")
 gs  = gridspec.GridSpec(1, 2, width_ratios=[4, 1], figure=fig)
@@ -144,7 +144,8 @@ def update(frame):
 
     if all_xs:
         x_end = max(all_xs)
-        ax_main.set_xlim(x_end - WINDOW_S, x_end + 0.5)
+        now = time.time()
+        ax_main.set_xlim(now - t_start - WINDOW_S, now - t_start + 0.5)
         all_ys = []
         for dev in DEVICES.values():
             all_ys.extend(dev["values"])
@@ -153,7 +154,7 @@ def update(frame):
             pad = (hi - lo) * 0.2 or 2.0
             ax_main.set_ylim(lo - pad, hi + pad)
 
-ani = animation.FuncAnimation(fig, update, interval=100,
+ani = animation.FuncAnimation(fig, update, interval=10,
                                blit=False, cache_frame_data=False)
 plt.tight_layout()
 plt.show()
