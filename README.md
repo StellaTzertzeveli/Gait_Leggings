@@ -2,6 +2,7 @@
 
 Cross-validation framework for machine-knitted strain sensors integrated into smart leggings, using Xsens Awinda IMU data as ground truth for gait analysis.
 
+
 ## Overview
 
 This pipeline calibrates knee-mounted strain sensors to biomechanical angles and validates their accuracy against IMU-derived kinematics using gyroscope integration. The approach enables low-cost wearable monitoring of knee flexion dynamics without relying solely on proprietary motion capture systems.
